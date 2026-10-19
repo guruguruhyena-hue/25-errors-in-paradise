@@ -35,7 +35,27 @@ const errors=['BOOT_FRAGMENT','RGB_SLIP','ECHO_MEMORY','SCANLINE_DRIFT','ASCII_B
 const layouts=[[45,143,260,360],[1090,86,264,326],[1003,485,246,275],[164,485,191,341],[932,215,188,364],[344,570,285,214],[15,550,185,245],[630,85,210,295],[891,651,197,172],[301,115,197,263],[1060,682,240,170],[1185,375,152,182],[615,627,228,208],[1121,0,250,175],[452,34,165,194],[720,404,227,216]];
 const r=(a,b)=>a+Math.random()*(b-a);let cycle=0,z=100;function fit(){let s=Math.min(innerWidth/1400,innerHeight/900);S.style.transform='translate('+((innerWidth-1400*s)/2)+'px,'+((innerHeight-900*s)/2)+'px) scale('+s+')'}onresize=fit;fit();
 function pos(e){let b=S.getBoundingClientRect(),s=b.width/1400;return[(e.clientX-b.left)/s,(e.clientY-b.top)/s]}
-function errorBurst(x,y){for(let i=0;i<6;i++){let q=document.createElement('img');q.className='virus';q.src='assets/'+files[Math.floor(r(0,files.length))];q.style.cssText+=';left:'+(x+r(-70,70))+'px;top:'+(y+r(-70,70))+'px;width:'+r(30,130)+'px;height:'+r(40,150)+'px;z-index:5000';E.append(q);setTimeout(()=>q.remove(),3100)}}
+function errorBurst(x,y){
+  const modes=['spiral','scatter','fountain','orbit','gravity','zigzag'],mode=modes[Math.floor(Math.random()*modes.length)];
+  const count=5+Math.floor(Math.random()*5),duration=1600+Math.random()*2200;
+  for(let i=0;i<count;i++){
+    const q=document.createElement('img');q.className='burstImage';
+    q.src='assets/'+files[Math.floor(r(0,files.length))];q.alt='';
+    const size=r(35,125),theta=2*Math.PI*i/count,dist=r(90,310),spin=r(-600,600);
+    let dx=Math.cos(theta)*dist,dy=Math.sin(theta)*dist;
+    if(mode==='fountain'){dx=r(-230,230);dy=r(-410,-70)}
+    if(mode==='gravity'){dx=r(-210,210);dy=r(150,360)}
+    if(mode==='zigzag'){dx=(i%2?-1:1)*r(85,360);dy=r(-260,260)}
+    if(mode==='orbit'){dx=Math.cos(theta*2)*r(60,180);dy=Math.sin(theta*2)*r(60,180)}
+    q.style.cssText='position:absolute;pointer-events:none;z-index:5100;left:'+x+'px;top:'+y+'px;width:'+size+'px;height:'+size+'px;object-fit:contain;will-change:transform,opacity';
+    E.append(q);
+    const mid=mode==='spiral'?{transform:'translate('+(-dy*.6)+'px,'+(dx*.6)+'px) rotate('+(spin*.45)+'deg) scale(1.15)',opacity:.93}:
+      {transform:'translate('+(dx*.45)+'px,'+(dy*.5-45)+'px) rotate('+(spin*.35)+'deg) scale(1.1)',opacity:1};
+    q.animate([{transform:'translate(-50%,-50%) rotate(0deg) scale(.25)',opacity:0,offset:0},
+      {...mid,offset:.48},{transform:'translate('+dx+'px,'+dy+'px) rotate('+spin+'deg) scale(.18)',opacity:0,offset:1}],
+      {duration:duration+r(-250,400),easing:mode==='gravity'?'cubic-bezier(.25,.1,.7,1)':'cubic-bezier(.16,.8,.3,1)',fill:'forwards'}).finished.finally(()=>q.remove());
+  }
+}
 files.forEach((file,i)=>{let [x,y,w,h]=layouts[i],d=document.createElement('section');d.className='win';d.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;z-index:'+(++z);d.innerHTML='<div class="bar"><span>25://'+file+'</span><span class="ctrl"><button data-act="min" aria-label="Minimize">−</button><button data-act="close" aria-label="Close">×</button></span></div><img src="assets/'+file+'" alt=""><div class="tag">ERROR_0'+(i+1)+'</div>';W.append(d);
 d.querySelector('[data-act="close"]').onclick=e=>{e.stopPropagation();d.hidden=true};
 d.querySelector('[data-act="min"]').onclick=e=>{e.stopPropagation();d.classList.toggle('min')};
@@ -202,6 +222,53 @@ const observer=new MutationObserver(()=>{
 });observer.observe(document.getElementById('generation'),{childList:true,characterData:true,subtree:true});
 setInterval(()=>{if(enabled && document.getElementById('evoPause')?.textContent!=='RESUME LIFE')createChild()},55000);
 update();
+})();
+</script>
+
+<style>
+.resize-handle{position:absolute;width:19px;height:19px;z-index:8;touch-action:none;cursor:nwse-resize;background:linear-gradient(135deg,transparent 38%,#111 40% 46%,transparent 49% 59%,#111 61% 68%,transparent 70%);right:1px;bottom:1px}
+.resize-handle.nw{left:1px;top:29px;right:auto;bottom:auto;transform:rotate(180deg)}
+.resize-handle.ne{right:1px;top:29px;bottom:auto;cursor:nesw-resize;transform:rotate(90deg)}
+.resize-handle.sw{left:1px;bottom:1px;right:auto;cursor:nesw-resize;transform:rotate(-90deg)}
+.win{min-width:105px;min-height:100px}
+.win.min{min-height:30px}
+</style>
+<script>
+/* v0.6 Window resizing: works for originals and newborn hybrid windows. */
+(()=>{
+const stage=document.getElementById('stage'),group=document.getElementById('windows');
+const clamp=(x,a,b)=>Math.min(Math.max(x,a),b);
+function setup(w){
+ if(w.dataset.resizable)return;w.dataset.resizable='1';
+ for(const corner of ['nw','ne','sw','se']){
+  const h=document.createElement('div');h.className='resize-handle '+corner;h.title='DRAG TO RESIZE';
+  h.addEventListener('pointerdown',e=>{
+   e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+   if(w.classList.contains('min'))return;
+   h.setPointerCapture(e.pointerId);
+   const start=[e.clientX,e.clientY],before={
+    x:parseFloat(w.style.left)||0,y:parseFloat(w.style.top)||0,
+    width:parseFloat(w.style.width)||220,height:parseFloat(w.style.height)||250};
+   const ratio=stage.getBoundingClientRect().width/1400;
+   function move(ev){
+    ev.preventDefault();ev.stopPropagation();
+    let dx=(ev.clientX-start[0])/ratio,dy=(ev.clientY-start[1])/ratio;
+    let x=before.x,y=before.y,right=x+before.width,bottom=y+before.height;
+    if(corner.includes('e'))right=clamp(right+dx,x+105,1398);
+    if(corner.includes('s'))bottom=clamp(bottom+dy,y+100,895);
+    if(corner.includes('w'))x=clamp(x+dx,0,right-105);
+    if(corner.includes('n'))y=clamp(y+dy,27,bottom-100);
+    w.style.left=x+'px';w.style.top=y+'px';
+    w.style.width=(right-x)+'px';w.style.height=(bottom-y)+'px';
+   }
+   function stop(){h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',stop);h.removeEventListener('pointercancel',stop)}
+   h.addEventListener('pointermove',move);h.addEventListener('pointerup',stop);h.addEventListener('pointercancel',stop);
+  });
+  w.append(h);
+ }
+}
+group.querySelectorAll('.win').forEach(setup);
+new MutationObserver(records=>{for(const rec of records)for(const node of rec.addedNodes)if(node.nodeType===1){if(node.matches?.('.win'))setup(node);node.querySelectorAll?.('.win').forEach(setup)}}).observe(group,{childList:true});
 })();
 </script>
 </body></html>
