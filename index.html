@@ -17,6 +17,15 @@
 #evoHud .meter span{display:block;height:100%;background:linear-gradient(90deg,#ff28c9,#3dddff,#bafa38);transition:width .5s}
 #evoHud button{padding:5px 7px;font-size:10px}
 #recompileFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9900;transition:opacity .25s}
+
+/* v0.5: artificial collage population */
+.offspring{border:2px solid var(--gene,#f0a);box-shadow:8px 8px 0 #3ce0e080;animation:born .55s ease-out both}
+.offspring .bar{background:linear-gradient(95deg,var(--gene,#f0a),#d6ff71)}
+.offspring .hybrid{position:absolute;inset:30px 0 0;pointer-events:none;overflow:hidden}
+.offspring .hybrid img{position:absolute;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;opacity:.5;transform:rotate(9deg) translateX(11%)}
+@keyframes born{from{opacity:0;scale:.25;rotate:-18deg}to{opacity:1;scale:1;rotate:0deg}}
+#breedHud{font:11px/1.5 monospace;border-top:1px dashed #999;margin-top:6px;padding-top:6px}
+#breedHud button{padding:5px 7px;font-size:10px}
 </style></head>
 <body><main id="stage"><img id="hero" src="assets/gr9.png" alt=""><div id="windows"></div><div id="effects"></div><div id="evolution"></div><div id="recompileFlash"></div><div id="hud"><h1>25 ERRORS IN PARADISE</h1><p>INTERACTIVE SCHIZOCOLLAGE / GUG<br>DRAG · CLOSE · INFECT · RECOMPILE</p><button id="mutate">MUTATE</button><button id="restore">RESTORE WINDOWS</button><button id="spawn">SPAWN ERROR</button><output id="status">BOOT_FRAGMENT // 01/25</output><div id="evoHud">GEN <b id="generation">01</b> · MEMORY <b id="memory">0</b> · ENTROPY <b id="entropy">0%</b><div class="meter"><span id="entropyFill" style="width:0%"></span></div><button id="evoPause">PAUSE LIFE</button><button id="evoReset">RESET EVOLUTION</button></div></div><div id="ticker"><span id="crawl"></span></div></main>
 <script>
@@ -119,6 +128,80 @@ stage.addEventListener('pointerdown',e=>{if(paused||e.target.closest('#hud')||e.
 pauseBtn.onclick=e=>{e.stopPropagation();paused=!paused;pauseBtn.textContent=paused?'RESUME LIFE':'PAUSE LIFE'};
 resetBtn.onclick=e=>{e.stopPropagation();for(const x of marks)x.remove();marks=[];n=0;generation=1;bursts=0;influence.fill(0);gen.textContent='01';stage.style.background='';windows.forEach(w=>{w.style.transform='';w.style.opacity='1';w.style.borderRadius='';w.querySelector('img').style.filter='';w.querySelector('img').style.transform=''});update()};
 setInterval(tick,25000);
+})();
+</script>
+
+<script>
+/* v0.5 — sexually recombining collage windows.
+   Child genomes carry two images, hue, scale, color, and lineage.
+   Population is capped at 12 children, with old generations recycled. */
+(()=>{
+'use strict';
+const stage=document.getElementById('stage'), group=document.getElementById('windows');
+const hud=document.getElementById('evoHud');
+if(!hud || !group)return;
+const panel=document.createElement('div');
+panel.id='breedHud';
+panel.innerHTML='POPULATION <b id="pop">16</b> / 28 · BIRTHS <b id="births">0</b><div><button id="breed">CROSSBREED</button><button id="autobreed">AUTOBREED ON</button><button id="clearbreed">CLEAR CHILDREN</button></div>';
+hud.append(panel);
+const pop=panel.querySelector('#pop'),births=panel.querySelector('#births');
+const photos=['GR1.png','GR2.png','GR3.png','GR4.png','GR6.png','GR7.png','Gr8.png','OBJ.png','gal1.png','gal2.png','gr9.png','obj2.png','obj3.png','obj4.png','obj5.png','obj6.png'];
+let children=[],born=0,enabled=true,lastGeneration='01',geneId=0;
+const rnd=(a,b)=>a+Math.random()*(b-a),sample=a=>a[Math.floor(rnd(0,a.length))];
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const population=()=>[...group.querySelectorAll('.win:not([hidden])')];
+function genome(w){
+ if(w.dataset.genome){try{return JSON.parse(w.dataset.genome)}catch(e){}}
+ return {a:w.querySelector('img')?.getAttribute('src')||'assets/gr9.png',b:null,hue:rnd(-60,60),scale:1,color:sample(['#f222b7','#22d9ee','#d7fe3a','#9f7bf6']),generation:0};
+}
+function update(){pop.textContent=String(16+children.length);births.textContent=String(born)}
+function removeChild(child){child.remove();children=children.filter(x=>x!==child);update()}
+function createChild(){
+ let adults=population();
+ if(adults.length<2)return;
+ let a=sample(adults),b=sample(adults.filter(x=>x!==a));
+ if(!b)return;
+ const ga=genome(a),gb=genome(b);
+ const g={a:Math.random()<.5?ga.a:ga.b||ga.a,b:Math.random()<.5?gb.a:gb.b||gb.a,
+ hue:(ga.hue+gb.hue)/2+rnd(-32,32),scale:clamp((ga.scale+gb.scale)/2+rnd(-.25,.3),.75,1.35),
+ color:Math.random()<.5?ga.color:gb.color,generation:Math.max(ga.generation,gb.generation)+1};
+ const idx=++geneId, width=rnd(125,225),height=rnd(150,280);
+ const x=clamp((parseFloat(a.style.left)||250)+rnd(-80,170),4,1400-width);
+ const y=clamp((parseFloat(b.style.top)||250)+rnd(-65,135),36,855-height);
+ const el=document.createElement('section');
+ el.className='win offspring';
+ el.dataset.genome=JSON.stringify(g);
+ el.dataset.child=String(idx);
+ el.style.cssText='--gene:'+g.color+';left:'+x+'px;top:'+y+'px;width:'+width+'px;height:'+height+'px;z-index:'+(600+idx);
+ el.innerHTML='<div class="bar"><span>CHILD_'+String(idx).padStart(3,'0')+' / GEN '+g.generation+'</span><span class="ctrl"><button data-action="breed" title="Breed">♡</button><button data-action="close" title="Close">×</button></span></div><img draggable="false" src="'+g.a+'" alt=""><div class="hybrid"><img draggable="false" src="'+g.b+'" alt=""></div><div class="tag">MIXED GENOME / '+g.generation+'</div>';
+ const primary=el.querySelector(':scope > img');primary.style.filter='hue-rotate('+g.hue+'deg) saturate(1.6)';primary.style.transform='scale('+g.scale+')';
+ group.append(el);
+ el.querySelector('[data-action="close"]').addEventListener('click',e=>{e.stopPropagation();removeChild(el)});
+ el.querySelector('[data-action="breed"]').addEventListener('click',e=>{e.stopPropagation();createChild()});
+ const bar=el.querySelector('.bar');
+ bar.addEventListener('pointerdown',e=>{
+  if(e.target.tagName==='BUTTON')return;
+  e.stopPropagation();const startX=e.clientX,startY=e.clientY,origX=parseFloat(el.style.left),origY=parseFloat(el.style.top);
+  const scale=stage.getBoundingClientRect().width/1400;
+  bar.setPointerCapture(e.pointerId);
+  const move=ev=>{el.style.left=clamp(origX+(ev.clientX-startX)/scale,0,1400-width)+'px';el.style.top=clamp(origY+(ev.clientY-startY)/scale,0,865-height)+'px'};
+  const stop=()=>{bar.removeEventListener('pointermove',move);bar.removeEventListener('pointerup',stop);bar.removeEventListener('pointercancel',stop)};
+  bar.addEventListener('pointermove',move);bar.addEventListener('pointerup',stop);bar.addEventListener('pointercancel',stop);
+ });
+ children.push(el);born++;
+ while(children.length>12)removeChild(children[0]);
+ update();
+}
+panel.querySelector('#breed').onclick=e=>{e.stopPropagation();createChild()};
+panel.querySelector('#autobreed').onclick=e=>{e.stopPropagation();enabled=!enabled;e.target.textContent=enabled?'AUTOBREED ON':'AUTOBREED OFF'};
+panel.querySelector('#clearbreed').onclick=e=>{e.stopPropagation();children.forEach(c=>c.remove());children=[];update()};
+document.getElementById('evoReset')?.addEventListener('click',()=>{children.forEach(c=>c.remove());children=[];born=0;lastGeneration='01';update()});
+const observer=new MutationObserver(()=>{
+ const current=document.getElementById('generation')?.textContent||'01';
+ if(current!==lastGeneration){lastGeneration=current;if(enabled){createChild();createChild();createChild()} }
+});observer.observe(document.getElementById('generation'),{childList:true,characterData:true,subtree:true});
+setInterval(()=>{if(enabled && document.getElementById('evoPause')?.textContent!=='RESUME LIFE')createChild()},55000);
+update();
 })();
 </script>
 </body></html>
