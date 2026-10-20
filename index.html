@@ -55,6 +55,8 @@
 #ticker{font-family:var(--font-ocr)}
 #hud h1{font-family:'Unbounded','Arial Black',sans-serif;font-size:14px;line-height:1.35;letter-spacing:-.055em}
 #hud .sub,#hud p{font-family:'DM Mono','Courier New',monospace}
+.win .ctrl .heart-btn,.offspring .ctrl [data-action="breed"].heart-btn{color:#ff168b!important;border:1px solid #ff168b!important;background:#fff7fc!important;font-family:Arial,sans-serif!important;font-weight:700!important;font-size:20px!important}
+.win .ctrl .heart-btn.loved,.offspring .ctrl [data-action="breed"].heart-btn.loved{background:#ffe1ef!important;color:#ff168b!important;border-color:#ff168b!important}
 </style></head>
 <body><main id="stage"><img id="hero" src="assets/gr9.png" alt=""><div id="windows"></div><div id="effects"></div><div id="evolution"></div><div id="recompileFlash"></div><div id="hud"><h1>25 ERRORS IN PARADISE</h1><p>INTERACTIVE SCHIZOCOLLAGE / GUG<br>DRAG · CLOSE · INFECT · RECOMPILE</p><button id="mutate">MUTATE</button><button id="restore">RESTORE WINDOWS</button><button id="spawn">SPAWN ERROR</button><output id="status">BOOT_FRAGMENT // 01/25</output><div id="evoHud">GEN <b id="generation">01</b> · MEMORY <b id="memory">0</b> · ENTROPY <b id="entropy">0%</b><div class="meter"><span id="entropyFill" style="width:0%"></span></div><button id="evoPause">PAUSE LIFE</button><button id="evoReset">RESET EVOLUTION</button></div></div><div id="ticker"><span id="crawl"></span></div></main>
 <script>
@@ -222,14 +224,14 @@ function createChild(){
  el.dataset.genome=JSON.stringify(g);
  el.dataset.child=String(idx);
  el.style.cssText='--gene:'+g.color+';left:'+x+'px;top:'+y+'px;width:'+width+'px;height:'+height+'px;z-index:'+(600+idx);
- el.innerHTML='<div class="bar"><span>CHILD_'+String(idx).padStart(3,'0')+' / GEN '+g.generation+'</span><span class="ctrl"><button data-action="breed" title="Breed" aria-label="Crossbreed" aria-pressed="false" class="heart-btn">❤︎</button><button data-action="close" title="Close">×</button></span></div><img draggable="false" src="'+g.a+'" alt=""><div class="hybrid"><img draggable="false" src="'+g.b+'" alt=""></div><div class="tag">MIXED GENOME / '+g.generation+'</div>';
+ el.innerHTML='<div class="bar"><span>CHILD_'+String(idx).padStart(3,'0')+' / GEN '+g.generation+'</span><span class="ctrl"><button data-action="breed" title="Breed" aria-label="Crossbreed" aria-pressed="false" class="heart-btn">♡</button><button data-action="close" title="Close">×</button></span></div><img draggable="false" src="'+g.a+'" alt=""><div class="hybrid"><img draggable="false" src="'+g.b+'" alt=""></div><div class="tag">MIXED GENOME / '+g.generation+'</div>';
  const primary=el.querySelector(':scope > img');primary.style.filter='hue-rotate('+g.hue+'deg) saturate(1.6)';primary.style.transform='scale('+g.scale+')';
  group.append(el);
  el.querySelector('[data-action="close"]').addEventListener('click',e=>{e.stopPropagation();removeChild(el)});
  el.querySelector('[data-action="breed"]').addEventListener('click',e=>{
   e.stopPropagation();const btn=e.currentTarget;
   const liked=btn.classList.toggle('loved');el.classList.toggle('loved',liked);
-  btn.textContent='❤︎';btn.setAttribute('aria-pressed',String(liked));
+  btn.textContent=liked?'❤︎':'♡';btn.setAttribute('aria-pressed',String(liked));
   btn.classList.remove('heart-pop');void btn.offsetWidth;btn.classList.add('heart-pop');
   if(liked)createChild();
 });
@@ -329,15 +331,15 @@ function enhance(w){
  const ctrl=w.querySelector('.bar .ctrl');
  if(!ctrl)return;
  let heart=ctrl.querySelector('[data-action="breed"]');
- if(heart){heart.classList.add('heart-btn');heart.textContent='❤︎';return;}
+ if(heart){heart.classList.add('heart-btn');heart.textContent=heart.classList.contains('loved')?'❤︎':'♡';return;}
  heart=document.createElement('button');
- heart.type='button';heart.className='heart-btn';heart.textContent='❤︎';
+ heart.type='button';heart.className='heart-btn';heart.textContent='♡';
  heart.title='Favorite / Breed';heart.setAttribute('aria-label','Select and crossbreed');heart.setAttribute('aria-pressed','false');
  ctrl.prepend(heart);
  heart.addEventListener('click',e=>{
   e.preventDefault();e.stopPropagation();
   const loved=heart.classList.toggle('loved');
-  heart.setAttribute('aria-pressed',String(loved));w.classList.toggle('loved',loved);
+  heart.setAttribute('aria-pressed',String(loved));heart.textContent=loved?'❤︎':'♡';w.classList.toggle('loved',loved);
   heart.classList.remove('heart-pop');void heart.offsetWidth;heart.classList.add('heart-pop');
   if(loved)document.querySelector('#breed')?.click();
  });
