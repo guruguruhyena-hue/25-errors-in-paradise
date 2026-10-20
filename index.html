@@ -26,6 +26,33 @@
 @keyframes born{from{opacity:0;scale:.25;rotate:-18deg}to{opacity:1;scale:1;rotate:0deg}}
 #breedHud{font:11px/1.5 monospace;border-top:1px dashed #999;margin-top:6px;padding-top:6px}
 #breedHud button{padding:5px 7px;font-size:10px}
+
+/* v0.8 typography laboratory / robust hearts in every window */
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;700&family=Unbounded:wght@500;900&family=DotGothic16&family=VT323&display=swap');
+:root{--font-ocr:'OCR A Std','OCR A Extended','DM Mono','Courier New',monospace}
+.win .bar>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;padding-right:5px}
+.win .ctrl{flex-shrink:0;display:flex;align-items:center;gap:4px}
+.win .ctrl button{display:flex;align-items:center;justify-content:center;width:23px;height:23px;padding:0;line-height:1;flex:0 0 23px;color:#111}
+.win .ctrl .heart-btn{font-family:Arial,'Apple Color Emoji',sans-serif;font-size:18px;font-weight:900;color:#18131e;background:#fff;transition:color .18s,background .18s;line-height:1}
+.win .ctrl .heart-btn.loved{color:#ff168b!important;background:#ffe0f1!important;border-color:#ff168b!important}
+.win .ctrl .heart-btn.heart-pop{animation:heartPop .48s cubic-bezier(.18,.85,.25,1.3)}
+.win.loved{box-shadow:8px 8px 0 #f756b688,0 0 18px #ff6ac388}
+.win:nth-child(6n+1) .bar{font-family:'Unbounded','Arial Black',sans-serif;letter-spacing:-.04em;font-size:10px}
+.win:nth-child(6n+2) .bar{font-family:var(--font-ocr);letter-spacing:.07em}
+.win:nth-child(6n+3) .bar{font-family:'VT323',monospace;font-size:17px}
+.win:nth-child(6n+4) .bar{font-family:'DotGothic16',monospace;font-size:11px}
+.win:nth-child(6n+5) .bar{font-family:'Archivo Black',Impact,sans-serif;font-size:10px}
+.win:nth-child(6n) .bar{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px}
+.stamp:nth-child(7n+1),.glyph:nth-child(7n+1){font-family:'Unbounded','Arial Black',sans-serif!important}
+.stamp:nth-child(7n+2),.glyph:nth-child(7n+2){font-family:var(--font-ocr)!important}
+.stamp:nth-child(7n+3),.glyph:nth-child(7n+3){font-family:'VT323',monospace!important}
+.stamp:nth-child(7n+4),.glyph:nth-child(7n+4){font-family:'DotGothic16',monospace!important}
+.stamp:nth-child(7n+5),.glyph:nth-child(7n+5){font-family:'Archivo Black',Impact,sans-serif!important}
+.stamp:nth-child(7n+6),.glyph:nth-child(7n+6){font-family:Georgia,serif!important;font-style:italic}
+.stamp:nth-child(7n),.glyph:nth-child(7n){font-family:'Space Grotesk',Arial,sans-serif!important}
+#ticker{font-family:var(--font-ocr)}
+#hud h1{font-family:'Unbounded','Arial Black',sans-serif;font-size:14px;line-height:1.35;letter-spacing:-.055em}
+#hud .sub,#hud p{font-family:'DM Mono','Courier New',monospace}
 </style></head>
 <body><main id="stage"><img id="hero" src="assets/gr9.png" alt=""><div id="windows"></div><div id="effects"></div><div id="evolution"></div><div id="recompileFlash"></div><div id="hud"><h1>25 ERRORS IN PARADISE</h1><p>INTERACTIVE SCHIZOCOLLAGE / GUG<br>DRAG · CLOSE · INFECT · RECOMPILE</p><button id="mutate">MUTATE</button><button id="restore">RESTORE WINDOWS</button><button id="spawn">SPAWN ERROR</button><output id="status">BOOT_FRAGMENT // 01/25</output><div id="evoHud">GEN <b id="generation">01</b> · MEMORY <b id="memory">0</b> · ENTROPY <b id="entropy">0%</b><div class="meter"><span id="entropyFill" style="width:0%"></span></div><button id="evoPause">PAUSE LIFE</button><button id="evoReset">RESET EVOLUTION</button></div></div><div id="ticker"><span id="crawl"></span></div></main>
 <script>
@@ -193,14 +220,14 @@ function createChild(){
  el.dataset.genome=JSON.stringify(g);
  el.dataset.child=String(idx);
  el.style.cssText='--gene:'+g.color+';left:'+x+'px;top:'+y+'px;width:'+width+'px;height:'+height+'px;z-index:'+(600+idx);
- el.innerHTML='<div class="bar"><span>CHILD_'+String(idx).padStart(3,'0')+' / GEN '+g.generation+'</span><span class="ctrl"><button data-action="breed" title="Breed" aria-label="Crossbreed" aria-pressed="false">♡</button><button data-action="close" title="Close">×</button></span></div><img draggable="false" src="'+g.a+'" alt=""><div class="hybrid"><img draggable="false" src="'+g.b+'" alt=""></div><div class="tag">MIXED GENOME / '+g.generation+'</div>';
+ el.innerHTML='<div class="bar"><span>CHILD_'+String(idx).padStart(3,'0')+' / GEN '+g.generation+'</span><span class="ctrl"><button data-action="breed" title="Breed" aria-label="Crossbreed" aria-pressed="false" class="heart-btn">❤︎</button><button data-action="close" title="Close">×</button></span></div><img draggable="false" src="'+g.a+'" alt=""><div class="hybrid"><img draggable="false" src="'+g.b+'" alt=""></div><div class="tag">MIXED GENOME / '+g.generation+'</div>';
  const primary=el.querySelector(':scope > img');primary.style.filter='hue-rotate('+g.hue+'deg) saturate(1.6)';primary.style.transform='scale('+g.scale+')';
  group.append(el);
  el.querySelector('[data-action="close"]').addEventListener('click',e=>{e.stopPropagation();removeChild(el)});
  el.querySelector('[data-action="breed"]').addEventListener('click',e=>{
   e.stopPropagation();const btn=e.currentTarget;
   const liked=btn.classList.toggle('loved');el.classList.toggle('loved',liked);
-  btn.textContent=liked?'♥':'♡';btn.setAttribute('aria-pressed',String(liked));
+  btn.textContent='❤︎';btn.setAttribute('aria-pressed',String(liked));
   btn.classList.remove('heart-pop');void btn.offsetWidth;btn.classList.add('heart-pop');
   if(liked)createChild();
 });
@@ -287,6 +314,34 @@ function setup(w){
 }
 group.querySelectorAll('.win').forEach(setup);
 new MutationObserver(records=>{for(const rec of records)for(const node of rec.addedNodes)if(node.nodeType===1){if(node.matches?.('.win'))setup(node);node.querySelectorAll?.('.win').forEach(setup)}}).observe(group,{childList:true});
+})();
+</script>
+
+<script>
+/* v0.8: heart buttons on original windows too; existing offspring keep their crossbreed handler. */
+(()=>{
+const group=document.getElementById('windows');
+function enhance(w){
+ if(w.dataset.heartReady)return;
+ w.dataset.heartReady='true';
+ const ctrl=w.querySelector('.bar .ctrl');
+ if(!ctrl)return;
+ let heart=ctrl.querySelector('[data-action="breed"]');
+ if(heart){heart.classList.add('heart-btn');heart.textContent='❤︎';return;}
+ heart=document.createElement('button');
+ heart.type='button';heart.className='heart-btn';heart.textContent='❤︎';
+ heart.title='Favorite / Breed';heart.setAttribute('aria-label','Select and crossbreed');heart.setAttribute('aria-pressed','false');
+ ctrl.prepend(heart);
+ heart.addEventListener('click',e=>{
+  e.preventDefault();e.stopPropagation();
+  const loved=heart.classList.toggle('loved');
+  heart.setAttribute('aria-pressed',String(loved));w.classList.toggle('loved',loved);
+  heart.classList.remove('heart-pop');void heart.offsetWidth;heart.classList.add('heart-pop');
+  if(loved)document.querySelector('#breed')?.click();
+ });
+}
+group.querySelectorAll('.win').forEach(enhance);
+new MutationObserver(ms=>{for(const m of ms)for(const node of m.addedNodes){if(node.nodeType!==1)continue;if(node.matches?.('.win'))enhance(node);node.querySelectorAll?.('.win').forEach(enhance)}}).observe(group,{childList:true});
 })();
 </script>
 </body></html>
