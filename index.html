@@ -193,11 +193,17 @@ function createChild(){
  el.dataset.genome=JSON.stringify(g);
  el.dataset.child=String(idx);
  el.style.cssText='--gene:'+g.color+';left:'+x+'px;top:'+y+'px;width:'+width+'px;height:'+height+'px;z-index:'+(600+idx);
- el.innerHTML='<div class="bar"><span>CHILD_'+String(idx).padStart(3,'0')+' / GEN '+g.generation+'</span><span class="ctrl"><button data-action="breed" title="Breed">♡</button><button data-action="close" title="Close">×</button></span></div><img draggable="false" src="'+g.a+'" alt=""><div class="hybrid"><img draggable="false" src="'+g.b+'" alt=""></div><div class="tag">MIXED GENOME / '+g.generation+'</div>';
+ el.innerHTML='<div class="bar"><span>CHILD_'+String(idx).padStart(3,'0')+' / GEN '+g.generation+'</span><span class="ctrl"><button data-action="breed" title="Breed" aria-label="Crossbreed" aria-pressed="false">♡</button><button data-action="close" title="Close">×</button></span></div><img draggable="false" src="'+g.a+'" alt=""><div class="hybrid"><img draggable="false" src="'+g.b+'" alt=""></div><div class="tag">MIXED GENOME / '+g.generation+'</div>';
  const primary=el.querySelector(':scope > img');primary.style.filter='hue-rotate('+g.hue+'deg) saturate(1.6)';primary.style.transform='scale('+g.scale+')';
  group.append(el);
  el.querySelector('[data-action="close"]').addEventListener('click',e=>{e.stopPropagation();removeChild(el)});
- el.querySelector('[data-action="breed"]').addEventListener('click',e=>{e.stopPropagation();createChild()});
+ el.querySelector('[data-action="breed"]').addEventListener('click',e=>{
+  e.stopPropagation();const btn=e.currentTarget;
+  const liked=btn.classList.toggle('loved');el.classList.toggle('loved',liked);
+  btn.textContent=liked?'♥':'♡';btn.setAttribute('aria-pressed',String(liked));
+  btn.classList.remove('heart-pop');void btn.offsetWidth;btn.classList.add('heart-pop');
+  if(liked)createChild();
+});
  const bar=el.querySelector('.bar');
  bar.addEventListener('pointerdown',e=>{
   if(e.target.tagName==='BUTTON')return;
@@ -226,12 +232,18 @@ update();
 </script>
 
 <style>
-.resize-handle{position:absolute;width:19px;height:19px;z-index:8;touch-action:none;cursor:nwse-resize;background:linear-gradient(135deg,transparent 38%,#111 40% 46%,transparent 49% 59%,#111 61% 68%,transparent 70%);right:1px;bottom:1px}
+.resize-handle{position:absolute;width:21px;height:21px;z-index:8;touch-action:none;cursor:nwse-resize;right:0;bottom:0;background:transparent}
 .resize-handle.nw{left:1px;top:29px;right:auto;bottom:auto;transform:rotate(180deg)}
 .resize-handle.ne{right:1px;top:29px;bottom:auto;cursor:nesw-resize;transform:rotate(90deg)}
 .resize-handle.sw{left:1px;bottom:1px;right:auto;cursor:nesw-resize;transform:rotate(-90deg)}
 .win{min-width:105px;min-height:100px}
 .win.min{min-height:30px}
+.offspring .ctrl button{display:flex;align-items:center;justify-content:center;line-height:1;padding:0;width:23px;height:23px;font-size:17px}
+.offspring .ctrl [data-action="breed"]{font-size:18px;transition:background .2s,color .2s,transform .2s}
+.offspring .ctrl [data-action="breed"].loved{color:#fc168e;background:#ffe2f2;border-color:#f633a5;text-shadow:0 0 7px #ff6ab4}
+.offspring .ctrl [data-action="breed"].heart-pop{animation:heartPop .48s cubic-bezier(.18,.85,.25,1.3)}
+.offspring.loved{box-shadow:8px 8px 0 #f756b688,0 0 13px #ff6ac355}
+@keyframes heartPop{0%{transform:scale(1)}35%{transform:scale(1.34)}65%{transform:scale(.88)}100%{transform:scale(1)}}
 </style>
 <script>
 /* v0.6 Window resizing: works for originals and newborn hybrid windows. */
@@ -250,16 +262,22 @@ function setup(w){
     x:parseFloat(w.style.left)||0,y:parseFloat(w.style.top)||0,
     width:parseFloat(w.style.width)||220,height:parseFloat(w.style.height)||250};
    const ratio=stage.getBoundingClientRect().width/1400;
+   const aspect=before.width/before.height;
    function move(ev){
     ev.preventDefault();ev.stopPropagation();
-    let dx=(ev.clientX-start[0])/ratio,dy=(ev.clientY-start[1])/ratio;
-    let x=before.x,y=before.y,right=x+before.width,bottom=y+before.height;
-    if(corner.includes('e'))right=clamp(right+dx,x+105,1398);
-    if(corner.includes('s'))bottom=clamp(bottom+dy,y+100,895);
-    if(corner.includes('w'))x=clamp(x+dx,0,right-105);
-    if(corner.includes('n'))y=clamp(y+dy,27,bottom-100);
-    w.style.left=x+'px';w.style.top=y+'px';
-    w.style.width=(right-x)+'px';w.style.height=(bottom-y)+'px';
+    const dx=(ev.clientX-start[0])/ratio,dy=(ev.clientY-start[1])/ratio;
+    const signX=corner.includes('e')?1:-1,signY=corner.includes('s')?1:-1;
+    const anchorX=corner.includes('e')?before.x:before.x+before.width;
+    const anchorY=corner.includes('s')?before.y:before.y+before.height;
+    const fromX=before.width+signX*dx,fromY=(before.height+signY*dy)*aspect;
+    let width=Math.abs(dx)>=Math.abs(dy*aspect)?fromX:fromY;
+    const maxWidthX=signX===1?1398-anchorX:anchorX;
+    const maxWidthY=(signY===1?895-anchorY:anchorY)*aspect;
+    width=clamp(width,Math.max(105,100*aspect),Math.max(Math.max(105,100*aspect),Math.min(maxWidthX,maxWidthY)));
+    const height=width/aspect;
+    w.style.width=width+'px';w.style.height=height+'px';
+    w.style.left=(signX===1?anchorX:anchorX-width)+'px';
+    w.style.top=(signY===1?anchorY:anchorY-height)+'px';
    }
    function stop(){h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',stop);h.removeEventListener('pointercancel',stop)}
    h.addEventListener('pointermove',move);h.addEventListener('pointerup',stop);h.addEventListener('pointercancel',stop);
