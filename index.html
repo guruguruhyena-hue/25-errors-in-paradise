@@ -348,4 +348,49 @@ group.querySelectorAll('.win').forEach(enhance);
 new MutationObserver(ms=>{for(const m of ms)for(const node of m.addedNodes){if(node.nodeType!==1)continue;if(node.matches?.('.win'))enhance(node);node.querySelectorAll?.('.win').forEach(enhance)}}).observe(group,{childList:true});
 })();
 </script>
+<div id="atlas"></div><style id="convergence-v12">
+#stage{background:linear-gradient(130deg,#fbfcff,#f5f0f9 50%,#eefbff)!important}
+#stage:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background-image:linear-gradient(#3d3a4c0d 1px,transparent 1px),linear-gradient(90deg,#3d3a4c0d 1px,transparent 1px);background-size:64px 64px}
+#hero{left:250px!important;top:45px!important;width:900px!important;height:790px!important;z-index:95!important}
+#windows{z-index:120;position:absolute;inset:0}
+#atlas{position:absolute;inset:0;pointer-events:none;z-index:220;opacity:0;transition:opacity 1.5s}
+#atlas .stat{position:absolute;border:1px solid #252033;background:#fefeffdd;padding:8px;font:10px 'DM Mono',monospace;box-shadow:4px 5px 0 #fd53ac33}
+#atlas .stat b{display:block;font:700 11px 'Unbounded',sans-serif;margin-bottom:6px}
+#atlas .line{position:absolute;background:#2f294166;transform-origin:0 50%;height:1px}
+#atlas .specimen{position:absolute;inset:60px 270px 50px;background:linear-gradient(#ffffff22,#ffebfa44);border:1px solid #3e354233}
+#atlas .specimen:after{content:"SPECIMEN 25 / COMPOSITE ANATOMY";position:absolute;right:16px;bottom:10px;font-size:12px;color:#262035}
+#stage.converging #atlas{opacity:1}
+#stage.converging .win{transition:left 2s ease,top 2s ease,transform 2s ease,opacity 1.5s ease;mix-blend-mode:multiply;opacity:.7}
+#stage.converging .win .bar{opacity:.14}
+#stage.frozen .win{opacity:.25!important;filter:grayscale(.4)}
+#stage.frozen #hero{z-index:180!important;filter:drop-shadow(0 22px 24px #ff4aba8c)}
+#stage.frozen #atlas{opacity:1}
+#stage.capture #hud{visibility:hidden}
+#stage.capture #ticker{visibility:hidden}
+#stage #hud.hidden{display:none}
+#atlas .composite{position:absolute;inset:0;pointer-events:none}
+#atlas .composite img{position:absolute;object-fit:contain;mix-blend-mode:multiply;opacity:.35}
+</style>
+<script>
+(()=>{
+const stage=document.getElementById('stage'),atlas=document.getElementById('atlas'),hud=document.getElementById('hud');
+const wins=()=>[...document.querySelectorAll('#windows .win')];let phase='SCATTER',auto=true,cycle=0,queue=[],generation=1;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+function later(fn,ms){let id=setTimeout(fn,ms);queue.push(id)}
+function cancel(){queue.forEach(clearTimeout);queue=[]}
+function panel(title,x,y,w=175,h=105){let d=document.createElement('div');d.className='stat';Object.assign(d.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});d.innerHTML='<b>'+title+'</b><span>SPECIMEN 25 // SIGNAL '+Math.round(rnd(11,99))+'</span><svg viewBox="0 0 160 34" width="100%" height="34"><path d="M0 25 L15 18 30 24 45 5 59 28 75 12 90 20 110 4 125 23 145 13 160 18" stroke="#16cfe2" fill="none" stroke-width="2"/><path d="M0 29 L25 20 46 25 72 14 90 29 120 19 160 22" stroke="#ff2ca8" fill="none" stroke-width="2"/></svg>';atlas.appendChild(d)}
+function build(){atlas.innerHTML='<div class="specimen"></div><div class="composite"></div>';['NEURAL SIGNAL','ERROR REGISTER','AFFECTIVE CURVE','MEMORY LOG','GENOME MAPPING','PHASE SHIFTS','ANATOMY INDEX','RECURSIVE TRACE','ENTROPY','SCANNER DATA','SYSTEM REPORT','HOST 25'].forEach((n,i)=>{let left=i<6?12:1215, top=55+(i%6)*135;panel(n,left,top,185,104)});
+let c=atlas.querySelector('.composite');wins().forEach((w,i)=>{if(i%2===0){let a=document.createElement('img');a.src=w.querySelector('img')?.src||'';a.style.left=(360+rnd(0,460))+'px';a.style.top=(90+rnd(0,480))+'px';a.style.width=rnd(200,420)+'px';a.style.height=rnd(240,540)+'px';a.style.transform='rotate('+rnd(-22,22)+'deg)';c.appendChild(a)}})}
+function converge(){cancel();phase='CONVERGE';build();stage.classList.add('converging');stage.classList.remove('frozen');wins().forEach((w,i)=>{let side=i%2===0?0:1;w.dataset.original=w.dataset.original||JSON.stringify([w.style.left,w.style.top,w.style.transform,w.style.opacity]);w.style.left=(side?1180+rnd(0,120):140+rnd(0,120))+'px';w.style.top=(115+Math.floor(i/2)*67)+'px';w.style.transform='rotate('+rnd(-7,7)+'deg) scale(.78)';w.style.zIndex=String(100+i)});later(()=>{phase='FREEZE';stage.classList.add('frozen');later(scatter,8500)},2700)}
+function scatter(){cancel();phase='SCATTER';stage.classList.remove('converging','frozen');atlas.innerHTML='';wins().forEach(w=>{if(!w.dataset.original)return;let a=JSON.parse(w.dataset.original);[w.style.left,w.style.top,w.style.transform,w.style.opacity]=a;w.style.display='';w.hidden=false});generation++;}
+function toggle(){auto=!auto;document.getElementById('atlas-auto').textContent='AUTO '+(auto?'ON':'OFF')}
+let row=document.createElement('div');row.innerHTML='<button id="atlas-converge">CONVERGE</button><button id="atlas-scatter">SCATTER</button><button id="atlas-auto">AUTO ON</button>';hud.appendChild(row);
+row.querySelector('#atlas-converge').onclick=converge;row.querySelector('#atlas-scatter').onclick=scatter;row.querySelector('#atlas-auto').onclick=toggle;
+function next(){if(phase==='SCATTER')converge();else scatter()}
+function shot(){stage.classList.add('capture');if(window.html2canvas){html2canvas(stage,{backgroundColor:'#fff',scale:2,useCORS:true}).then(c=>{let a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='25-errors-in-paradise.png';a.click()}).finally(()=>stage.classList.remove('capture'))}else{stage.classList.remove('capture');alert('Screenshot library did not load. Use browser screenshot.')}}
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();toggle()}else if(e.key==='ArrowRight'){e.preventDefault();next()}else if(e.key==='ArrowLeft'){e.preventDefault();scatter()}else if(e.key.toLowerCase()==='m'){hud.classList.toggle('hidden')}else if(e.key.toLowerCase()==='s'){shot()}});
+setInterval(()=>{if(auto&&phase==='SCATTER'&&++cycle%3===0)converge()},25000);
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </body></html>
