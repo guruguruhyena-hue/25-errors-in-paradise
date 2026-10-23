@@ -374,6 +374,8 @@ new MutationObserver(ms=>{for(const m of ms)for(const node of m.addedNodes){if(n
 <script>
 (()=>{
 const stage=document.getElementById('stage'),atlas=document.getElementById('atlas'),hud=document.getElementById('hud');
+/* Keep the research board in the scaled artwork, not the page viewport. */
+if(atlas.parentElement!==stage)stage.appendChild(atlas);
 const wins=()=>[...document.querySelectorAll('#windows .win')];let phase='SCATTER',auto=true,cycle=0,queue=[],generation=1;
 const rnd=(a,b)=>a+Math.random()*(b-a);
 function later(fn,ms){let id=setTimeout(fn,ms);queue.push(id)}
