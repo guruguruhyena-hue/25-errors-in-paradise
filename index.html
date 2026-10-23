@@ -393,4 +393,67 @@ setInterval(()=>{if(auto&&phase==='SCATTER'&&++cycle%3===0)converge()},25000);
 })();
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style id="hydra-infection-style">
+#hydra-core{position:absolute;left:250px;top:45px;width:900px;height:790px;z-index:96;pointer-events:none;opacity:0;mix-blend-mode:screen;filter:saturate(1.45);transition:opacity 1s,filter 1.5s}
+#hydra-core.ready{opacity:.54}
+#stage.converging #hydra-core.ready{opacity:.84;mix-blend-mode:screen;filter:saturate(2.5) contrast(1.3)}
+#stage.frozen #hydra-core.ready{opacity:.39;filter:saturate(1.15) contrast(1.05)}
+#hud #hydra-controls{margin:7px 0;border-top:1px dashed #999;padding-top:6px;font:11px monospace}
+#hud #hydra-controls button{padding:5px 7px;font-size:10px}
+#hydra-status{font-size:10px;color:#a20a8e}
+</style>
+<script src="https://unpkg.com/hydra-synth@1.4.0/dist/hydra-synth.js"></script>
+<script>
+/* v1.3 HYDRA INFECTION — single WebGL layer for the mother host.
+   Falls back to the original still image if Hydra or WebGL is unavailable. */
+(()=>{
+'use strict';
+const stage=document.getElementById('stage'),hero=document.getElementById('hero'),hud=document.getElementById('hud');
+const canvas=document.createElement('canvas');canvas.id='hydra-core';canvas.width=640;canvas.height=560;stage.insertBefore(canvas,document.getElementById('windows'));
+const controls=document.createElement('div');controls.id='hydra-controls';controls.innerHTML='<span id="hydra-status">HYDRA / INITIALIZING</span><div><button id="hydra-toggle">HYDRA ON</button><button id="hydra-intensity">GLITCH 35%</button></div>';hud.appendChild(controls);
+const status=controls.querySelector('#hydra-status'),toggle=controls.querySelector('#hydra-toggle'),strength=controls.querySelector('#hydra-intensity');
+let enabled=true, intensity=.35, available=false, phase='SCATTER', freezeFrame=null, lastSrc='';
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function setStatus(msg){status.textContent=msg}
+function update(){canvas.classList.toggle('ready',enabled&&available);toggle.textContent=enabled?'HYDRA ON':'HYDRA OFF';strength.textContent='GLITCH '+Math.round(intensity*100)+'%';}
+toggle.addEventListener('click',()=>{enabled=!enabled;update()});
+strength.addEventListener('click',()=>{intensity=intensity>=.95?.15:intensity+.2;update()});
+window.__hydraInfection={get intensity(){return intensity},set intensity(v){intensity=clamp(v,0,1);update()},get enabled(){return enabled},capture:()=>canvas.toDataURL('image/png')};
+try{
+if(typeof Hydra!=='function') throw Error('Hydra CDN unavailable');
+const h=new Hydra({canvas,width:640,height:560,detectAudio:false,makeGlobal:false,precision:'mediump'});
+const syn=h.synth;
+syn.s0.initImage(hero.getAttribute('src'));
+lastSrc=hero.getAttribute('src');
+syn.src(syn.s0)
+ .modulate(syn.osc(3,.06,1.1),()=>phase==='FREEZE'?.006:intensity*(phase==='CONVERGE'?.20:.045))
+ .modulateHue(syn.noise(2,.07),()=>phase==='FREEZE'?.002:intensity*.11)
+ .pixelate(()=>phase==='CONVERGE'?Math.max(26,140-intensity*110):700,()=>phase==='CONVERGE'?Math.max(40,260-intensity*170):550)
+ .saturate(()=>1+intensity*.8)
+ .out(syn.o0);
+available=true;setStatus('HYDRA / LIVE WEBGL');update();
+}catch(err){console.warn('Hydra fallback:',err);setStatus('HYDRA / STATIC FALLBACK');canvas.classList.remove('ready');}
+setInterval(()=>{
+  if(!available)return;
+  let current=hero.getAttribute('src');
+  if(current&&current!==lastSrc){lastSrc=current;try{window.__hydraInfectionSource=lastSrc; /* Image changes are rare; source follows the hero. */}catch(e){}}
+  let state=stage.classList.contains('frozen')?'FREEZE':stage.classList.contains('converging')?'CONVERGE':'SCATTER';
+  if(state!==phase){phase=state; if(state==='CONVERGE'){intensity=.90;} else if(state==='FREEZE'){intensity=.02;} else{intensity=.35;} update();}
+},150);
+const group=document.getElementById('windows');
+group.addEventListener('click',e=>{if(!available||!e.target.closest('.heart-btn')&&!e.target.closest('[data-action="breed"]'))return;intensity=clamp(intensity+.12,0,1);update()});
+/* WebGL canvas data is often missed by html2canvas. During S capture,
+   replace it with a raster image, allow original key handler to capture,
+   then restore the live canvas. */
+document.addEventListener('keydown',e=>{
+ if(e.key.toLowerCase()!=='s'||e.repeat||!available||!enabled)return;
+ try{
+ const img=document.createElement('img');img.src=canvas.toDataURL('image/png');img.id='hydra-screenshot-image';
+ img.style.cssText='position:absolute;left:250px;top:45px;width:900px;height:790px;z-index:97;pointer-events:none;opacity:'+getComputedStyle(canvas).opacity+';mix-blend-mode:screen';
+ canvas.after(img);canvas.style.visibility='hidden';setTimeout(()=>{img.remove();canvas.style.visibility=''},1600);
+ }catch(err){console.warn('Hydra screenshot fallback:',err)}
+},true);
+})();
+</script>
 </body></html>
